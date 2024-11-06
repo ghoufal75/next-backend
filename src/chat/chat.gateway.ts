@@ -25,10 +25,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('message')
   async handleMessage(client: any, payload: any) {
     payload = JSON.parse(payload);
-    console.log('Rooms : ', this.chatService.rooms);
+    // console.log('Rooms : ', this.chatService.rooms);
     const conv = payload.conversation;
     payload.sentAt = new Date();
     payload.readBy = [];
+    let room = this.chatService.rooms.find(el=>el.roomId==conv);
+    console.log("Here are conencted users : ",this.chatService.connectedUsers);
+    console.log("Here are rooms : ",this.chatService.rooms);
+    for (let user of room.users){
+      if(!room.joined.find(us=>us.userId==user) && this.chatService.connectedUsers.find(el=>el._id==user)){
+        console.log("Here is user from joined : ",room.joined[0])
+        console.log(`User ${user} isn't connected`)
+        this.chatService.connectedUsers.find(el=>el._id==user).socket.join(conv);
+        this.server.to( this.chatService.connectedUsers.find(el=>el._id==user).socketId).emit('getNewConv');
+      }
+    }
     this.server.to(conv).emit('newMessage', JSON.stringify(payload));
     const result = await this.chatService.saveMessage(payload);
     console.log("Here is the saving result : ",result)
@@ -45,6 +56,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     payload = JSON.parse(payload);
     this.server.to(payload.conversation).emit('messageRead',JSON.stringify(payload));
     let read = await this.chatService.seeMessage(client,payload);
+  }
+
+  @SubscribeMessage('isWriting')
+  handleIsWriting(client : any,payload){
+    payload = JSON.parse(payload);
+    this.server.to(payload.conversation).emit('isWriting',JSON.stringify(payload));
   }
 
   handleConnection(client: Socket, ...args: any[]) {

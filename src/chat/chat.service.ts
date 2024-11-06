@@ -22,6 +22,7 @@ import { ChatGateway } from './chat.gateway';
 @Injectable()
 export class ChatService {
   rooms: Room[] = [];
+  connectedUsers = [];
 
 
   constructor(
@@ -32,6 +33,7 @@ export class ChatService {
   ) {}
 
   connectUser(socket, userId) {
+    this.connectedUsers.push({_id : userId,socketId: socket.id,socket});
     for (const room of this.rooms) {
       if (room.users.includes(userId)) {
         if(room.joined.findIndex((el:any)=>el==userId)==-1){
