@@ -1,4 +1,6 @@
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
@@ -14,13 +16,44 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 @WebSocketGateway({ cors: true })
 @Injectable()
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+
+
+  @WebSocketServer()
+  public server: any;
+  chunk : any;
+  // file = new ArrayBuffer();
+  // filename;
+
+
   constructor(
     @Inject(forwardRef(() => ChatService)) private chatService,
     private authService: AuthenticationService,
   ) {}
 
-  @WebSocketServer()
-  public server: any;
+
+
+
+  // @SubscribeMessage('clientUploadReady')
+  // onClientReady(client : any, payload : any){
+  //   let parsedData = JSON.parse(payload);
+  //   this.filename =  parsedData.filename;
+  //   this.server.to(parsedData.conv).emit('serverUploadReady')
+  // }
+
+
+  // @SubscribeMessage('clientUploadChunk')
+  // handleFileChunk(
+  //   @MessageBody() data: { chunk: string; end: boolean, conv : string },
+  //   @ConnectedSocket() client: Socket,
+  // ) {
+  //   this.server.to(data.conv).emit('fileChunk', data.chunk);
+
+  //   if (data.end) {
+  //     client.emit('serverUploadComplete', { message: 'File upload complete' });
+  //     this.server.to(data.conv).emit('fileUploadComplete', { message: 'File received' });
+  //   }
+  // }
+
 
   @SubscribeMessage('message')
   async handleMessage(client: any, payload: any) {
@@ -51,6 +84,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('Convs : ', conv);
   }
 
+
   @SubscribeMessage('seen')
   async handleSeenStatus(client: any, payload: any) {
     payload = JSON.parse(payload);
@@ -58,11 +92,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     let read = await this.chatService.seeMessage(client,payload);
   }
 
+
   @SubscribeMessage('isWriting')
   handleIsWriting(client : any,payload){
     payload = JSON.parse(payload);
     this.server.to(payload.conversation).emit('isWriting',JSON.stringify(payload));
   }
+
 
   handleConnection(client: Socket, ...args: any[]) {
     // const token: string = client.handshake.query.token as string;
@@ -73,6 +109,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // console.log('Socket established');
     // client.send('info');
   }
+
 
   @SubscribeMessage('join')
   handleJoin(client: Socket, data: any) {
@@ -85,6 +122,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     client.send('Successfully joined');
   }
+
 
   handleDisconnect(client: any) {
     this.chatService.disconnectUser(client);
